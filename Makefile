@@ -5,10 +5,10 @@
 # .c files are compiled here by the NuttX toolchain, so every libc binding
 # (setjmp/longjmp, malloc/free, ...) resolves to the NuttX side consistently.
 #
-# stdlib = RIDL variant: the runtime TU engine/mqjs_stdlib_impl.c defines
+# stdlib = RIDL variant: the runtime TU <sdk>/deps/mquickjs-rs/mqjs_stdlib_impl.c defines
 # the strong `js_stdlib` with the RIDL extension tables (console -> Rust
 # adapter), gen/mquickjs_ridl_register.c is the app aggregate's register TU
-# (JS_RIDL_StdlibInit + require table), and engine/mqjs_require.c implements
+# (JS_RIDL_StdlibInit + require table), and <sdk>/deps/mquickjs-rs/require.c implements
 # require(). The base engine mqjs_stdlib.c is NOT compiled here.
 #
 # The generated stdlib table always contains the adapter-owned entry points
@@ -24,11 +24,11 @@
 #
 # Generated artifacts are checked in under gen/ (atom header, ridl stdlib
 # table, rs hook declarations, aggregate register TUs, framework bindgen
-# headers consumed by the vendored Rust workspace). Regeneration commands
+# headers consumed by the Rust adapter). Regeneration commands
 # and source revisions: see SYNC.md.
 #
 # Rust adapter (RS=y only): built by the `context::` rule below with the
-# vendored workspace-local cargo (cwd = rust/, so the crate-local
+# SDK-adjacent crate-local cargo (cwd = rust/, so the crate-local
 # .cargo/config.toml applies — MQJS_ENGINE_LINK=external keeps engine
 # objects OUT of the archive to avoid duplicate strong symbols with the
 # CSRCS below). The archive is staged into $(APPDIR)/staging and linked by
@@ -38,9 +38,21 @@
 
 include $(APPDIR)/Make.defs
 
+# SDK layout: the mquickjs-rs-sdk checkout that the repo manifest places at
+# <tree>/external/mquickjs-rs-sdk. Everything non-integration comes from
+# there (engine C, stdlib runtime TUs, Rust crates via the adapter's cargo
+# path deps); this app only owns js_main forms, gen/ artifacts and wiring.
+MQJS_SDK_DIR := $(abspath $(CURDIR)/../../../../external/mquickjs-rs-sdk)
+ifeq ($(wildcard $(MQJS_SDK_DIR)/Cargo.toml),)
+$(error mqjs: mquickjs-rs-sdk not found at $(MQJS_SDK_DIR) -- sync the repo \
+ manifest (project external/mquickjs-rs-sdk) or clone it there)
+endif
+MQJS_ENGINE_DIR := $(MQJS_SDK_DIR)/deps/mquickjs
+MQJS_RS_DIR := $(MQJS_SDK_DIR)/deps/mquickjs-rs
+
 # Engine compile flags (mirrors deps/mquickjs/Makefile target CFLAGS minus
 # host-specific parts) plus gen/ (generated headers + aggregate register TU)
-# and engine/ (private headers).
+# and the SDK engine dir (private headers).
 # -DMQUICKJS_ENABLE_RIDL_EXTENSIONS selects the strong-`js_stdlib` linkage
 # and the RIDL code paths; the force-included api header declares the RIDL
 # js_* entry points referenced by the generated stdlib table inside
@@ -48,18 +60,20 @@ include $(APPDIR)/Make.defs
 # hooks baked into the same table (js_rs_* are defined non-static in the
 # selected MAINSRC — cross-TU references).
 CFLAGS += -Igen
-CFLAGS += -Iengine
+CFLAGS += -I$(MQJS_ENGINE_DIR)
 CFLAGS += -DMQUICKJS_ENABLE_RIDL_EXTENSIONS
 CFLAGS += -include mquickjs_ridl_api.h
 CFLAGS += -include mqjs_rs_hooks.h
 CFLAGS += -fno-math-errno -fno-trapping-math
 
-# Engine core + ridl-variant stdlib runtime TUs (vendored under engine/)
-# plus the app aggregate's register TU (gen/).
-MQJS_ENGINE_SRCS = mquickjs.c cutils.c dtoa.c libm.c \
-	mqjs_stdlib_impl.c mqjs_require.c
+# Engine core TUs (SDK deps/mquickjs) + ridl-variant stdlib runtime TUs
+# (SDK deps/mquickjs-rs: mqjs_stdlib_impl.c defines the strong `js_stdlib`,
+# require.c implements require()) + the app aggregate's register TU (gen/).
+MQJS_ENGINE_SRCS = mquickjs.c cutils.c dtoa.c libm.c
+MQJS_RS_RT_SRCS = mqjs_stdlib_impl.c mqjs_require.c
 
-CSRCS += $(foreach f,$(MQJS_ENGINE_SRCS),engine/$(f))
+CSRCS += $(addprefix $(MQJS_ENGINE_DIR)/,$(MQJS_ENGINE_SRCS))
+CSRCS += $(addprefix $(MQJS_RS_DIR)/,$(MQJS_RS_RT_SRCS))
 CSRCS += gen/mquickjs_ridl_register.c
 
 PROGNAME  = $(CONFIG_MQJS_JS_PROGNAME)

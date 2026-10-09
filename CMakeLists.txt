@@ -1,57 +1,102 @@
 ############################################################################
 # apps/system/mqjs/CMakeLists.txt — mquickjs `js` NSH builtin (CMake track)
 #
-# PLACEHOLDER: the CMake track is NOT part of the Phase 3.1 acceptance
-# (Make track only, sim mechanism verification). This file mirrors the
-# Makefile structurally and keeps the CMake build from silently dropping
-# the directory; it must be re-validated under the official Vela CMake
-# flow before any CMake-track use (same deferral decision as the
-# ports/openvela CMake port, M2 scope).
+# Mirrors the Makefile (Make track): the engine's .c files are compiled
+# HERE by the NuttX toolchain so every libc binding stays on the NuttX
+# side; sources come from the mquickjs-rs-sdk checkout that the repo
+# manifest places at <tree>/external/mquickjs-rs-sdk. Generated artifacts
+# are checked in under gen/ (atom header, ridl stdlib table, rs hook
+# declarations, aggregate register TUs, framework bindgen headers).
 #
-# Differences vs the Makefile wiring (kept intentionally explicit here):
-# - the Rust adapter archive must be staged into ${APPDIR}/staging (the
-#   CMake link consumes it like any other extra library) — build it with:
-#     cd rust && cargo build --release --target x86_64-unknown-linux-gnu -p mqjs
-#     cp rust/target/x86_64-unknown-linux-gnu/release/libmqjs.a ${APPDIR}/staging/
-# - generated artifacts are checked in under gen/, so no framework.* include
-#   is needed; include dirs and force-includes mirror the Makefile CFLAGS.
+# Rust adapter (RS=y): a custom target runs the same crate-local cargo
+# build as the Make track (cwd = rust/, so .cargo/config.toml applies --
+# MQJS_ENGINE_LINK=external keeps engine objects out of the archive);
+# the archive is linked via nuttx_add_extra_library, and DEPENDS on the
+# app target orders cargo before the final link.
 ############################################################################
 
 if(CONFIG_MQJS_JS)
 
+  # The openvela cmake flow processes app directories in multiple passes
+  # (kconfig pre/post generation). Guard against duplicate target creation.
+  if(TARGET apps_${CONFIG_MQJS_JS_PROGNAME})
+    return()
+  endif()
+
+  # SDK layout (repo manifest guarantees external/mquickjs-rs-sdk).
+  get_filename_component(MQJS_SDK_DIR
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../external/mquickjs-rs-sdk" ABSOLUTE)
+  if(NOT EXISTS "${MQJS_SDK_DIR}/Cargo.toml")
+    message(FATAL_ERROR
+      "mqjs: mquickjs-rs-sdk not found at ${MQJS_SDK_DIR} -- sync the repo "
+      "manifest (project external/mquickjs-rs-sdk) or clone it there")
+  endif()
+  set(MQJS_ENGINE_DIR "${MQJS_SDK_DIR}/deps/mquickjs")
+  set(MQJS_RS_DIR     "${MQJS_SDK_DIR}/deps/mquickjs-rs")
+
   # RS switch (mirrors the Makefile): RS=y builds the Rust-adapter form
-  # (js_main.c, adapter archive staged into ${APPDIR}/staging, see header
-  # comment); RS=n builds the C-only checkpoint (Phase 3.3: js_main_c.c,
-  # direct JS_NewContext/JS_Eval + C fallback stubs for the adapter-owned
-  # table entry points — no cargo, no staging). CSRCS/CFLAGS are identical
-  # in both forms; only MAINSRC differs.
+  # (js_main.c + adapter archive); RS=n builds the C-only checkpoint
+  # (js_main_c.c, direct JS_NewContext/JS_Eval + C fallback stubs for the
+  # adapter-owned table entry points -- no cargo). CSRCS/CFLAGS are
+  # identical in both forms; only MAINSRC and the adapter archive differ.
   if(CONFIG_MQJS_RS)
     set(MQJS_MAINSRC js_main.c)
   else()
     set(MQJS_MAINSRC js_main_c.c)
   endif()
 
-  # The openvela cmake flow processes app directories in multiple passes
-  # (kconfig pre/post generation). Guard against duplicate target creation:
-  # once apps_<progname> exists from an earlier pass, re-adding it here
-  # fails with "cannot create target".
-  if(TARGET apps_${CONFIG_MQJS_JS_PROGNAME})
-    return()
+  # Rust target follows the board architecture (dual-mode adapter): std on
+  # host Linux (sim), aarch64-unknown-none + panic=abort elsewhere
+  # (bare-metal no_std). Explicit whitelist -- anything else fails loudly.
+  if(CONFIG_ARCH STREQUAL "arm64")
+    set(MQJS_RUST_TARGET aarch64-unknown-none)
+    set(MQJS_CARGO_PREFIX ${CMAKE_COMMAND} -E env RUSTFLAGS=-Cpanic=abort)
+  elseif(CONFIG_ARCH STREQUAL "sim")
+    set(MQJS_RUST_TARGET x86_64-unknown-linux-gnu)
+    set(MQJS_CARGO_PREFIX "")
+  else()
+    message(FATAL_ERROR
+      "mqjs: unsupported CONFIG_ARCH '${CONFIG_ARCH}' for the Rust bridge "
+      "-- extend the whitelist with an explicit target")
+  endif()
+  set(MQJS_ADAPTER_A
+    "${CMAKE_CURRENT_SOURCE_DIR}/rust/target/${MQJS_RUST_TARGET}/release/libmqjs.a")
+
+  set(MQJS_APP_DEPENDS)
+  if(CONFIG_MQJS_RS)
+    # Adapter archive: crate-local cargo (cwd = rust/ so .cargo/config.toml
+    # applies). Rerun is a cheap no-op when the crate is up to date.
+    find_program(MQJS_CARGO_EXEC cargo REQUIRED)
+    file(GLOB_RECURSE MQJS_RUST_DEPS
+      "${CMAKE_CURRENT_SOURCE_DIR}/rust/*.rs"
+      "${CMAKE_CURRENT_SOURCE_DIR}/rust/Cargo.toml")
+    list(FILTER MQJS_RUST_DEPS EXCLUDE REGEX "/target/")
+    add_custom_command(
+      OUTPUT "${MQJS_ADAPTER_A}"
+      COMMAND ${CMAKE_COMMAND} -E chdir
+              "${CMAKE_CURRENT_SOURCE_DIR}/rust"
+              ${MQJS_CARGO_PREFIX} ${MQJS_CARGO_EXEC} build --release
+              --target ${MQJS_RUST_TARGET}
+      DEPENDS ${MQJS_RUST_DEPS}
+      VERBATIM)
+    add_custom_target(mqjs_rust_adapter ALL DEPENDS "${MQJS_ADAPTER_A}")
+    nuttx_add_extra_library("${MQJS_ADAPTER_A}")
+    set(MQJS_APP_DEPENDS mqjs_rust_adapter)
   endif()
 
   nuttx_add_application(
     NAME ${CONFIG_MQJS_JS_PROGNAME}
     SRCS
       ${MQJS_MAINSRC}
-      engine/mquickjs.c
-      engine/cutils.c
-      engine/dtoa.c
-      engine/libm.c
+      ${MQJS_ENGINE_DIR}/mquickjs.c
+      ${MQJS_ENGINE_DIR}/cutils.c
+      ${MQJS_ENGINE_DIR}/dtoa.c
+      ${MQJS_ENGINE_DIR}/libm.c
       # RIDL-variant stdlib runtime TUs: mqjs_stdlib_impl.c defines the
-      # strong js_stdlib (RIDL tables incl. console), the register TU comes
-      # from the app aggregate (gen/), mqjs_require.c implements require().
-      engine/mqjs_stdlib_impl.c
-      engine/mqjs_require.c
+      # strong js_stdlib (RIDL tables incl. console), require.c implements
+      # require(); the register TU comes from the app aggregate (gen/).
+      ${MQJS_RS_DIR}/mqjs_stdlib_impl.c
+      ${MQJS_RS_DIR}/mqjs_require.c
       gen/mquickjs_ridl_register.c
     STACKSIZE
       ${CONFIG_MQJS_JS_STACKSIZE}
@@ -59,7 +104,9 @@ if(CONFIG_MQJS_JS)
       ${CONFIG_MQJS_JS_PRIORITY}
     INCLUDE_DIRECTORIES
       ${CMAKE_CURRENT_SOURCE_DIR}/gen
-      ${CMAKE_CURRENT_SOURCE_DIR}/engine
+      ${MQJS_ENGINE_DIR}
+    DEPENDS
+      ${MQJS_APP_DEPENDS}
     COMPILE_FLAGS
       -fno-math-errno
       -fno-trapping-math

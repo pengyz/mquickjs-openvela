@@ -5,3 +5,9 @@ rust/target/
 rust/target/
 rust/adapter/target/
 .mqjs-context-stamp*
+
+# NuttX build state / stray objects (M-1 noise: MAINSRC compiled per-rule)
+.built
+.depend
+Make.dep
+*.o

@@ -4,7 +4,7 @@
 //! `ridl_context_ext.rs`, `ridl_bootstrap.rs`) from
 //! `gen/ridl/apps/mqjs/aggregate/` into `OUT_DIR`. The aggregate is
 //! PRE-GENERATED and checked into the tree (gen/); the location is wired by
-//! `.cargo/config.toml` (`MQUICKJS_RIDL_TARGET_DIR = "../../gen"`). The
+//! `.cargo/config.toml` (`MQUICKJS_RIDL_TARGET_DIR = "../gen"`). The
 //! code path is unchanged from the upstream adapter (demo repo
 //! ports/openvela/rust); regeneration + diff-self-check commands live in
 //! ../SYNC.md.

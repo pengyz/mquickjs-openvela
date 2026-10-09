@@ -3,7 +3,7 @@
 # All paths are RELATIVE and resolve against the build-script working
 # directory, which cargo sets to the package root of each package being
 # built (adapter/ and mquickjs-sys/ are both direct children of this
-# directory, so ../../gen lands on apps/system/mqjs/gen for both).
+# directory, so ../gen lands on apps/system/mqjs/gen for this single crate).
 #
 # MQJS_ENGINE_LINK=external (duplicate-symbol gate): the openvela image
 # provides the engine C objects at source level (app Makefile CSRCS), so
@@ -28,6 +28,6 @@
 
 [env]
 MQJS_ENGINE_LINK = "external"
-MQUICKJS_BUILD_TOML = "../../gen/mquickjs.build.toml"
-MQUICKJS_RIDL_TARGET_DIR = "../../gen"
+MQUICKJS_BUILD_TOML = "../gen/mquickjs.build.toml"
+MQUICKJS_RIDL_TARGET_DIR = "../gen"
 MQUICKJS_RIDL_CARGO_TOML = "Cargo.toml"
