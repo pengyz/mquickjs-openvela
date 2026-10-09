@@ -5,6 +5,12 @@
 # built (adapter/ and mquickjs-sys/ are both direct children of this
 # directory, so ../gen lands on apps/system/mqjs/gen for this single crate).
 #
+# NOTE on `relative = true` (cargo resolves the value to an ABSOLUTE path
+# anchored at this config file's directory): with the two-repo layout the
+# Rust dependency crates build from DIFFERENT working directories (the sys
+# crate runs inside external/mquickjs-rs-sdk), so cwd-relative env values
+# cannot serve all of them -- the anchored absolute path can.
+#
 # MQJS_ENGINE_LINK=external (duplicate-symbol gate): the openvela image
 # provides the engine C objects at source level (app Makefile CSRCS), so
 # this workspace's staticlib must NOT bundle engine objects (U7 regression
@@ -28,6 +34,6 @@
 
 [env]
 MQJS_ENGINE_LINK = "external"
-MQUICKJS_BUILD_TOML = "../gen/mquickjs.build.toml"
-MQUICKJS_RIDL_TARGET_DIR = "../gen"
+MQUICKJS_BUILD_TOML = { value = "../gen/mquickjs.build.toml", relative = true }
+MQUICKJS_RIDL_TARGET_DIR = { value = "../gen", relative = true }
 MQUICKJS_RIDL_CARGO_TOML = "Cargo.toml"

@@ -25,7 +25,7 @@ if(CONFIG_MQJS_JS)
 
   # SDK layout (repo manifest guarantees external/mquickjs-rs-sdk).
   get_filename_component(MQJS_SDK_DIR
-    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../external/mquickjs-rs-sdk" ABSOLUTE)
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../../external/mquickjs-rs-sdk" ABSOLUTE)
   if(NOT EXISTS "${MQJS_SDK_DIR}/Cargo.toml")
     message(FATAL_ERROR
       "mqjs: mquickjs-rs-sdk not found at ${MQJS_SDK_DIR} -- sync the repo "
@@ -71,12 +71,41 @@ if(CONFIG_MQJS_JS)
       "${CMAKE_CURRENT_SOURCE_DIR}/rust/*.rs"
       "${CMAKE_CURRENT_SOURCE_DIR}/rust/Cargo.toml")
     list(FILTER MQJS_RUST_DEPS EXCLUDE REGEX "/target/")
+
+    # LIBCLANG_PATH for bindgen (mirrors the Makefile rule): keep an
+    # externally provided LIBCLANG_PATH only when it really contains a
+    # libclang shared library; otherwise resolve one from the system linker
+    # cache. envsetup's prebuilts value fails in partial checkouts.
+    set(MQJS_CARGO_ENV)
+    if(CONFIG_ARCH STREQUAL "arm64")
+      list(APPEND MQJS_CARGO_ENV "RUSTFLAGS=-Cpanic=abort")
+    endif()
+    set(MQJS_LIBCLANG_DIR "")
+    if(DEFINED ENV{LIBCLANG_PATH}
+       AND EXISTS "$ENV{LIBCLANG_PATH}"
+       AND EXISTS "$ENV{LIBCLANG_PATH}/libclang.so")
+      set(MQJS_LIBCLANG_DIR "$ENV{LIBCLANG_PATH}")
+    else()
+      execute_process(
+        COMMAND sh -c "ldconfig -p 2>/dev/null | awk '$1 ~ /^libclang/ && $1 !~ /cpp/ {print $NF; exit}'"
+        OUTPUT_VARIABLE MQJS_LIBCLANG_SO
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET)
+      if(MQJS_LIBCLANG_SO)
+        get_filename_component(MQJS_LIBCLANG_DIR "${MQJS_LIBCLANG_SO}" DIRECTORY)
+      endif()
+    endif()
+    if(MQJS_LIBCLANG_DIR)
+      list(APPEND MQJS_CARGO_ENV "LIBCLANG_PATH=${MQJS_LIBCLANG_DIR}")
+    endif()
+    # (no LIBCLANG_DIR at all -> plain env; the cargo error names the knob)
+
     add_custom_command(
       OUTPUT "${MQJS_ADAPTER_A}"
       COMMAND ${CMAKE_COMMAND} -E chdir
               "${CMAKE_CURRENT_SOURCE_DIR}/rust"
-              ${MQJS_CARGO_PREFIX} ${MQJS_CARGO_EXEC} build --release
-              --target ${MQJS_RUST_TARGET}
+              ${CMAKE_COMMAND} -E env ${MQJS_CARGO_ENV}
+              ${MQJS_CARGO_EXEC} build --release --target ${MQJS_RUST_TARGET}
       DEPENDS ${MQJS_RUST_DEPS}
       VERBATIM)
     add_custom_target(mqjs_rust_adapter ALL DEPENDS "${MQJS_ADAPTER_A}")
@@ -96,7 +125,7 @@ if(CONFIG_MQJS_JS)
       # strong js_stdlib (RIDL tables incl. console), require.c implements
       # require(); the register TU comes from the app aggregate (gen/).
       ${MQJS_RS_DIR}/mqjs_stdlib_impl.c
-      ${MQJS_RS_DIR}/mqjs_require.c
+      ${MQJS_RS_DIR}/require.c
       gen/mquickjs_ridl_register.c
     STACKSIZE
       ${CONFIG_MQJS_JS_STACKSIZE}

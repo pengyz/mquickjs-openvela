@@ -11,3 +11,5 @@ rust/adapter/target/
 .depend
 Make.dep
 *.o
+*.gcno
+*.gcda

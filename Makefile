@@ -42,7 +42,7 @@ include $(APPDIR)/Make.defs
 # <tree>/external/mquickjs-rs-sdk. Everything non-integration comes from
 # there (engine C, stdlib runtime TUs, Rust crates via the adapter's cargo
 # path deps); this app only owns js_main forms, gen/ artifacts and wiring.
-MQJS_SDK_DIR := $(abspath $(CURDIR)/../../../../external/mquickjs-rs-sdk)
+MQJS_SDK_DIR := $(abspath $(CURDIR)/../../../external/mquickjs-rs-sdk)
 ifeq ($(wildcard $(MQJS_SDK_DIR)/Cargo.toml),)
 $(error mqjs: mquickjs-rs-sdk not found at $(MQJS_SDK_DIR) -- sync the repo \
  manifest (project external/mquickjs-rs-sdk) or clone it there)
@@ -70,7 +70,7 @@ CFLAGS += -fno-math-errno -fno-trapping-math
 # (SDK deps/mquickjs-rs: mqjs_stdlib_impl.c defines the strong `js_stdlib`,
 # require.c implements require()) + the app aggregate's register TU (gen/).
 MQJS_ENGINE_SRCS = mquickjs.c cutils.c dtoa.c libm.c
-MQJS_RS_RT_SRCS = mqjs_stdlib_impl.c mqjs_require.c
+MQJS_RS_RT_SRCS = mqjs_stdlib_impl.c require.c
 
 CSRCS += $(addprefix $(MQJS_ENGINE_DIR)/,$(MQJS_ENGINE_SRCS))
 CSRCS += $(addprefix $(MQJS_RS_DIR)/,$(MQJS_RS_RT_SRCS))
@@ -162,6 +162,10 @@ context:: $(MQJS_RUST_STAMP)
 
 clean::
 	$(Q) rm -rf rust/target rust/.mqjs-context-stamp-*
+	# stray per-source objects: the apps-level clean does not descend here,
+	# and stale objects from the OTHER track (sim <-> qemu switch) break the
+	# link with 'file in wrong format'
+	$(Q) find $(APPDIR)/system/mqjs -name '*.o' -delete
 
 else # CONFIG_MQJS_RS=n — C-only checkpoint (Phase 3.3)
 
