@@ -1,0 +1,33 @@
+# Crate-local build wiring for the tree-in adapter workspace.
+#
+# All paths are RELATIVE and resolve against the build-script working
+# directory, which cargo sets to the package root of each package being
+# built (adapter/ and mquickjs-sys/ are both direct children of this
+# directory, so ../../gen lands on apps/system/mqjs/gen for both).
+#
+# MQJS_ENGINE_LINK=external (duplicate-symbol gate): the openvela image
+# provides the engine C objects at source level (app Makefile CSRCS), so
+# this workspace's staticlib must NOT bundle engine objects (U7 regression
+# guard). Being crate-local, a plain `cargo build` in this directory is
+# already in external mode; other consumers of the vendored crates are
+# unaffected.
+#
+# MQUICKJS_BUILD_TOML: mquickjs-sys/build.rs reads the pre-generated
+# framework artifacts declared by gen/mquickjs.build.toml (paths inside the
+# JSON are relative to that file's directory — gen/target/...).
+#
+# MQUICKJS_RIDL_TARGET_DIR: mquickjs-ridl-glue::emit() (adapter build.rs)
+# reads the pre-generated RIDL aggregate from
+# gen/ridl/apps/mqjs/aggregate instead of cargo's target dir.
+#
+# MQUICKJS_RIDL_CARGO_TOML: pins the glue's "root package" lookup to the
+# adapter package itself. Without it the glue derives the manifest from
+# mquickjs.ridl.toml's directory (= this virtual workspace manifest, which
+# is not a package). Resolved against the adapter package root (cargo's
+# build-script cwd).
+
+[env]
+MQJS_ENGINE_LINK = "external"
+MQUICKJS_BUILD_TOML = "../../gen/mquickjs.build.toml"
+MQUICKJS_RIDL_TARGET_DIR = "../../gen"
+MQUICKJS_RIDL_CARGO_TOML = "Cargo.toml"

@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "lib_dir": "target/mquickjs-build/framework/x86_64-unknown-linux-gnu/release/ridl/lib",
+  "include_dir": "target/mquickjs-build/framework/x86_64-unknown-linux-gnu/release/ridl/include",
+  "libs": [
+    "mquickjs",
+    "mquickjs_core",
+    "mquickjs_stdlib_ridl"
+  ],
+  "inputs": [
+    "../engine/mquickjs.c",
+    "../engine/dtoa.c",
+    "../engine/libm.c",
+    "../engine/cutils.c",
+    "target/mquickjs-build/framework/x86_64-unknown-linux-gnu/release/ridl/include/mquickjs_ridl_register.h",
+    "target/mquickjs-build/framework/x86_64-unknown-linux-gnu/release/ridl/include/mquickjs_ridl_module_class_ids.h",
+    "target/mquickjs-build/framework/x86_64-unknown-linux-gnu/release/ridl/include/mquickjs_romclass_index.json"
+  ]
+}

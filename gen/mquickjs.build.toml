@@ -1,0 +1,21 @@
+# Tree-in mquickjs build profile map (rewritten for the in-tree layout from
+# the mquickjs-rs-demo repo's mquickjs.build.toml; see ../SYNC.md).
+#
+# This file is located at gen/ so that the framework artifacts it declares
+# resolve to gen/target/mquickjs-build/... (mquickjs-sys/build.rs derives the
+# artifact directory as <this file's dir>/target/mquickjs-build/...). It is
+# consumed via .cargo/config.toml [env] MQUICKJS_BUILD_TOML.
+#
+# NOTE: app_manifest is parsed for schema compatibility but NOT consumed by
+# mquickjs-sys/build.rs (assigned to an unused local). It names this app's
+# adapter manifest as the SoT that drove the checked-in aggregate.
+#
+# Paths inside target/mquickjs-build/.../mquickjs_build_output.json are
+# RELATIVE to this file's directory; the vendored mquickjs-sys/build.rs
+# resolves them against this directory (upstream resolves only absolute
+# paths — see SYNC.md "vendored adaptations").
+
+default = "framework"
+
+[profiles.framework]
+app_manifest = "rust/adapter/Cargo.toml"

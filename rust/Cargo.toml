@@ -1,0 +1,12 @@
+[workspace]
+# Tree-in vendored closure for the `js` NSH builtin (apps/system/mqjs).
+# All first-party crates are vendored here; see ../SYNC.md for source revs,
+# vendored adaptations and regeneration commands.
+resolver = "2"
+members = [
+    "adapter",
+    "mquickjs-rs",
+    "mquickjs-sys",
+    "mquickjs-ridl-glue",
+    "stdlib",
+]

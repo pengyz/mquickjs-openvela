@@ -1,0 +1,7 @@
+# Machine-local cargo build state of the vendored Rust workspace.
+# Everything else under this app directory (sources, gen/ checked-in
+# artifacts, Cargo.lock, configs) is part of the tree-in integration.
+rust/target/
+rust/target/
+rust/adapter/target/
+.mqjs-context-stamp*

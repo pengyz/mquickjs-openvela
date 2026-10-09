@@ -1,0 +1,47 @@
+#
+# apps/system/mqjs/Kconfig — NSH builtin registration for the mquickjs
+# `js` command (tree-in OpenVela port of mquickjs-rs; see SYNC.md).
+#
+
+config MQJS_JS
+	bool "mquickjs JS interpreter (mquickjs-rs OpenVela port)"
+	default n
+	---help---
+		Run JS scripts under the NSH shell with the mquickjs engine
+		(RIDL-variant stdlib; console served by the Rust adapter when
+		MQJS_RS is enabled). Usage: js <script.js> [...]
+
+if MQJS_JS
+
+config MQJS_RS
+	bool "Rust adapter bridge (RIDL stdlib console)"
+	default y
+	---help---
+		Build the vendored Rust adapter (apps/system/mqjs/rust, host
+		cargo) and link its staticlib from apps/staging. The adapter
+		owns JS context creation/eval/free (the RIDL glue dispatches
+		through the JSContext user_data that only the Rust side
+		installs) and serves the console singleton.
+		When disabled, the C-only checkpoint form is built instead
+		(js_main_c.c: direct C context creation/eval plus C fallback
+		stubs for the adapter-owned stdlib entry points; console
+		prints to stdout). Used as the QEMU arm64 C checkpoint
+		(Phase 3.3) to isolate engine/defconfig domain issues from
+		Rust domain issues.
+
+config MQJS_JS_PROGNAME
+	string "Program name"
+	default "js"
+
+config MQJS_JS_PRIORITY
+	int "Priority"
+	default 100
+
+config MQJS_JS_STACKSIZE
+	int "Stack size (bytes)"
+	default 65536
+	---help---
+		The engine's recursive parser needs headroom; the NSH builtin
+		default stack (KB-level) is not enough. 64 KiB minimum.
+
+endif

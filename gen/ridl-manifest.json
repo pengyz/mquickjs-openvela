@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "modules": [
+    {
+      "crate_name": "stdlib",
+      "crate_dir": "/home/peng/workspace/openvela/apps/system/mqjs/rust/stdlib",
+      "ridl_files": [
+        "/home/peng/workspace/openvela/apps/system/mqjs/rust/stdlib/src/stdlib.ridl"
+      ]
+    }
+  ]
+}

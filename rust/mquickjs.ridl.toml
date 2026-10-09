@@ -1,0 +1,5 @@
+version = 1
+# RIDL app id pinned to the package name (crate `mqjs`); the aggregate is
+# pre-generated into ../gen/ridl/apps/mqjs/aggregate and consumed there via
+# .cargo/config.toml [env] MQUICKJS_RIDL_TARGET_DIR.
+app_id = "mqjs"
