@@ -28,6 +28,7 @@ crate-type = ["staticlib"]
 # 恰好一种模式（std 与 no-std 互斥由下游 crate 的 compile_error 兜底）。
 [dependencies]
 mquickjs-rs = { path = "../../../../external/mquickjs-rs-sdk/deps/mquickjs-rs", default-features = false, features = ["ridl-extensions"] }
+mquickjs-ui = { path = "../../../../external/mquickjs-ui", default-features = false }
 
 [dependencies.stdlib]
 path = "../../../../external/mquickjs-rs-sdk/ridl-modules/stdlib"
