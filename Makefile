@@ -144,8 +144,19 @@ endif
 # instead of re-staging the other target's stale archive (cargo caches
 # per-triple under rust/target/, so the re-run is a normal incremental
 # build).
+# Source watch must cover the leaf's declared PATH DEPS too (SDK crates +
+# the mquickjs-ui sibling -- mirrors the [dependencies] tables in
+# rust/Cargo.toml): a change inside those must re-run cargo, otherwise the
+# staged archive goes stale silently (observed: a mquickjs-ui backend.rs
+# edit was not picked up because only rust/ was watched).
 MQJS_RUST_DEPS := $(shell find $(CURDIR)/rust \
 	\( -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' \) -not -path '*/target/*' 2>/dev/null | sort)
+MQJS_RUST_DEPS += $(shell find $(MQJS_SDK_DIR)/deps/mquickjs-rs/src \
+	$(MQJS_SDK_DIR)/deps/mquickjs-ridl-glue/src \
+	$(MQJS_SDK_DIR)/ridl-modules/stdlib/src \
+	$(MQJS_SDK_DIR)/ridl-modules/stdlib/generated \
+	$(CURDIR)/../../../external/mquickjs-ui/src \
+	-name '*.rs' 2>/dev/null | sort)
 MQJS_RUST_STAMP := rust/.mqjs-context-stamp-$(MQJS_RUST_TARGET)
 
 $(MQJS_RUST_STAMP): $(MQJS_RUST_DEPS)

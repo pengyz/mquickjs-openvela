@@ -67,9 +67,19 @@ if(CONFIG_MQJS_JS)
     # Adapter archive: crate-local cargo (cwd = rust/ so .cargo/config.toml
     # applies). Rerun is a cheap no-op when the crate is up to date.
     find_program(MQJS_CARGO_EXEC cargo REQUIRED)
+    # Source watch: the adapter leaf's declared path deps (Cargo.toml) —
+    # the SDK checkout AND the mquickjs-ui sibling. A change inside any of
+    # them must re-run cargo; the glob below must mirror every path-dep
+    # root added to rust/Cargo.toml (cargo's own fingerprint alone is NOT
+    # consulted unless the custom command re-runs).
     file(GLOB_RECURSE MQJS_RUST_DEPS
       "${CMAKE_CURRENT_SOURCE_DIR}/rust/*.rs"
-      "${CMAKE_CURRENT_SOURCE_DIR}/rust/Cargo.toml")
+      "${CMAKE_CURRENT_SOURCE_DIR}/rust/Cargo.toml"
+      "${MQJS_SDK_DIR}/deps/mquickjs-rs/src/*.rs"
+      "${MQJS_SDK_DIR}/deps/mquickjs-ridl-glue/src/*.rs"
+      "${MQJS_SDK_DIR}/ridl-modules/stdlib/src/*.rs"
+      "${MQJS_SDK_DIR}/ridl-modules/stdlib/generated/*.rs"
+      "${CMAKE_CURRENT_SOURCE_DIR}/../../../external/mquickjs-ui/src/*.rs")
     list(FILTER MQJS_RUST_DEPS EXCLUDE REGEX "/target/")
 
     # LIBCLANG_PATH for bindgen (mirrors the Makefile rule): keep an
@@ -148,5 +158,13 @@ if(CONFIG_MQJS_JS)
   target_compile_options(apps_${CONFIG_MQJS_JS_PROGNAME} PRIVATE
     "SHELL:-include mquickjs_ridl_api.h"
     "SHELL:-include mqjs_rs_hooks.h")
+
+  # Nested demo app (kconfig/mkkconfig scan one level, so lvgldemo/Kconfig
+  # is sourced from this dir's Kconfig; its CMakeLists DEPENDS on this
+  # dir's mqjs_rust_adapter custom target, which exists when MQJS_RS=y --
+  # the demo's Kconfig depends on MQJS_JS && MQJS_RS).
+  if(CONFIG_MQJS_LVGLDEMO)
+    add_subdirectory(lvgldemo)
+  endif()
 
 endif()

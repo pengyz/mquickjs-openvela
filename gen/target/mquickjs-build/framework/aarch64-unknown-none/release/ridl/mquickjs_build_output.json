@@ -8,10 +8,11 @@
     "mquickjs_stdlib_ridl"
   ],
   "inputs": [
-    "../engine/mquickjs.c",
-    "../engine/dtoa.c",
-    "../engine/libm.c",
-    "../engine/cutils.c",
+    "../../../../external/mquickjs-rs-sdk/deps/mquickjs/mquickjs_build.c",
+    "../../../../external/mquickjs-rs-sdk/deps/mquickjs/mquickjs.c",
+    "../../../../external/mquickjs-rs-sdk/deps/mquickjs/dtoa.c",
+    "../../../../external/mquickjs-rs-sdk/deps/mquickjs/libm.c",
+    "../../../../external/mquickjs-rs-sdk/deps/mquickjs/cutils.c",
     "target/mquickjs-build/framework/aarch64-unknown-none/release/ridl/include/mquickjs_ridl_register.h",
     "target/mquickjs-build/framework/aarch64-unknown-none/release/ridl/include/mquickjs_ridl_module_class_ids.h",
     "target/mquickjs-build/framework/aarch64-unknown-none/release/ridl/include/mquickjs_romclass_index.json"

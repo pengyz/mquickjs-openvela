@@ -45,3 +45,9 @@ config MQJS_JS_STACKSIZE
 		default stack (KB-level) is not enough. 64 KiB minimum.
 
 endif
+
+if MQJS_JS
+
+source "$APPSDIR/system/mqjs/lvgldemo/Kconfig"
+
+endif # MQJS_JS

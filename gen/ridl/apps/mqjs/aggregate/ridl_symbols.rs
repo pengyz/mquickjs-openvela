@@ -12,6 +12,15 @@ mod __ridl_agg_symbols {
     ) -> mquickjs_rs::mquickjs_ffi::JSValue;
 
     // externs for all js_* functions
+    unsafe extern "C" {
+        pub fn js_global_class_label_set_text(ctx: *mut mquickjs_rs::mquickjs_ffi::JSContext, this_val: mquickjs_rs::mquickjs_ffi::JSValue, argc: i32, argv: *mut mquickjs_rs::mquickjs_ffi::JSValue) -> mquickjs_rs::mquickjs_ffi::JSValue;
+    }
+    unsafe extern "C" {
+        pub fn js_global_class_button_set_text(ctx: *mut mquickjs_rs::mquickjs_ffi::JSContext, this_val: mquickjs_rs::mquickjs_ffi::JSValue, argc: i32, argv: *mut mquickjs_rs::mquickjs_ffi::JSValue) -> mquickjs_rs::mquickjs_ffi::JSValue;
+    }
+    unsafe extern "C" {
+        pub fn js_global_class_button_on_click(ctx: *mut mquickjs_rs::mquickjs_ffi::JSContext, this_val: mquickjs_rs::mquickjs_ffi::JSValue, argc: i32, argv: *mut mquickjs_rs::mquickjs_ffi::JSValue) -> mquickjs_rs::mquickjs_ffi::JSValue;
+    }
 
     #[used]
     #[allow(non_upper_case_globals)]
@@ -23,7 +32,11 @@ mod __ridl_agg_symbols {
             argv: *mut mquickjs_rs::mquickjs_ffi::JSValue,
         ) -> mquickjs_rs::mquickjs_ffi::JSValue;
         0
+        + 3
     ] = [
+        js_global_class_label_set_text,
+        js_global_class_button_set_text,
+        js_global_class_button_on_click,
     ];
 
     #[used]

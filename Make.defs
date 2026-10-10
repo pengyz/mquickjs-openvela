@@ -4,8 +4,16 @@
 # Register the mqjs app into the apps build sweep (mirrors
 # apps/examples/rust/baremetal/Make.defs). Without this the directory is
 # never entered into CONFIGURED_APPS and the builtin is not built.
+#
+# lvgldemo/ is a NESTED app directory (kconfig/mkkconfig only scans one
+# level, so its Kconfig is sourced from this dir's Kconfig): register it
+# here under its own gate.
 ############################################################################
 
 ifneq ($(CONFIG_MQJS_JS),)
 CONFIGURED_APPS += $(APPDIR)/system/mqjs
+endif
+
+ifneq ($(CONFIG_MQJS_LVGLDEMO),)
+CONFIGURED_APPS += $(APPDIR)/system/mqjs/lvgldemo
 endif

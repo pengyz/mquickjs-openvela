@@ -13,3 +13,12 @@ Make.dep
 *.o
 *.gcno
 *.gcda
+
+# Framework build intermediates & engine archives (per SYNC.md: 不入库 —
+# release include/ + output.json are the committed surface; lib/ is
+# re-created by `mquickjs-build build`, build/ is its scratch dir, and the
+# debug profile is fully local (mquickjs-sys derives it from PROFILE for
+# test binaries only; include/ is byte-identical to the release one).
+gen/target/mquickjs-build/framework/*/release/ridl/lib/
+gen/target/mquickjs-build/framework/*/release/ridl/build/
+gen/target/mquickjs-build/framework/*/debug/

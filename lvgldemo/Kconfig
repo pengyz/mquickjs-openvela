@@ -1,0 +1,36 @@
+#
+# apps/system/mqjs/lvgldemo/Kconfig — B0 spike 宿主 app：mquickjs-ui
+# （RIDL Label/Button）+ LVGL 端到端演示（由 ../Kconfig source 进树）。
+#
+
+menuconfig MQJS_LVGLDEMO
+	bool "mquickjs LVGL UI demo (mqjslvg: mquickjs-ui via RIDL)"
+	default n
+	depends on MQJS_JS && MQJS_RS && GRAPHICS_LVGL
+	---help---
+		Build the B0-spike host app: LVGL window + mquickjs engine
+		(RIDL aggregate incl. Label/Button from mquickjs-ui) + embedded
+		demo JS + one unified loop. The demo exercises the four spike
+		risk points (GC-in-callback, same-thread, post-eval callback,
+		LV_EVENT_DELETE handle release) and prints MQJS_LVGL sentinels.
+		Depends on the mqjs builtin (MQJS_JS+MQJS_RS): the demo links
+		libmqjs.a from the mqjs app's Rust adapter build.
+
+if MQJS_LVGLDEMO
+
+config MQJS_LVGLDEMO_PROGNAME
+	string "Program name"
+	default "mqjslvgl"
+
+config MQJS_LVGLDEMO_PRIORITY
+	int "Demo task priority"
+	default 100
+
+config MQJS_LVGLDEMO_STACKSIZE
+	int "Demo task stack size (bytes)"
+	default 131072
+	---help---
+		JS parser + lv_timer_handler share this stack; 128 KiB mirrors
+		the js builtin's headroom policy plus LVGL frames.
+
+endif # MQJS_LVGLDEMO

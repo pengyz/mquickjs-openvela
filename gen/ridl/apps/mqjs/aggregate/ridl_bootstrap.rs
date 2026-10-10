@@ -19,6 +19,7 @@ pub mod ridl_initialize {
 
     mod modules {
         pub fn initialize_modules() {
+            mquickjs_ui::initialize_module();
             stdlib::initialize_module();
         }
     }

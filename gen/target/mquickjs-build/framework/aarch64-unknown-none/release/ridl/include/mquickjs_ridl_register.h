@@ -23,9 +23,15 @@
 //
 // JS class ids (JS_CLASS_*) must be compile-time constants for mquickjs-build to
 // generate the ROM table. Numeric IDs are allocated starting from JS_CLASS_USER.
+#define JS_CLASS_GLOBAL_LABEL (JS_CLASS_USER + 0)
+
+void js_global_class_label_class(void);
+#define JS_CLASS_GLOBAL_BUTTON (JS_CLASS_USER + 1)
+
+void js_global_class_button_class(void);
 
 #ifndef JS_CLASS_COUNT
-#define JS_CLASS_COUNT (JS_CLASS_USER + 0)
+#define JS_CLASS_COUNT (JS_CLASS_USER + 2)
 #endif
 
 /* ----------------------------
@@ -33,6 +39,109 @@
  * (JSPropDef/JSClassDef/constructor stubs)
  * ----------------------------
  */
+
+JSValue js_global_class_label_constructor(
+    JSContext *ctx,
+    JSValue *this_val,
+    int argc,
+    JSValue *argv
+);
+
+void js_global_class_label_finalizer(
+    JSContext *ctx,
+    void *opaque
+);
+
+// NOTE: class-level gc_mark callback 已废弃，不再声明。
+// `Traced<T>` 基于引擎 JSGCRef（mark + 重定位均由引擎自动处理），
+// 因此注册表中的 gc_mark 槽位恒为 NULL。
+// 详见 rust_glue.rs.j2 中同名说明与 docs/knowledge/gotcha_mquickjs_gc_mark_signature.md。
+JSValue js_global_class_label_set_text(
+    JSContext *ctx,
+    JSValue *this_val,
+    int argc,
+    JSValue *argv
+);
+
+static const JSPropDef js_global_class_label_proto_funcs[] = {
+    JS_CFUNC_DEF("setText", 1, js_global_class_label_set_text),
+    JS_PROP_END,
+};
+
+const JSClassDef js_global_class_label_class_def =
+    JS_CLASS_DEF(
+        "Label",
+        1,
+        js_global_class_label_constructor,
+        JS_CLASS_GLOBAL_LABEL,
+        NULL,
+        js_global_class_label_proto_funcs,
+        NULL,
+        js_global_class_label_finalizer,
+        NULL  // gc_mark: 恒为 NULL（Traced<T> 由 JSGCRef 自动标记/重定位）
+    );
+
+void js_global_class_label_class(void) {
+    (void)&js_global_class_label_class_def;
+    (void)&js_global_class_label_proto_funcs;
+    (void)&js_global_class_label_constructor;
+    (void)&js_global_class_label_finalizer;
+}
+
+JSValue js_global_class_button_constructor(
+    JSContext *ctx,
+    JSValue *this_val,
+    int argc,
+    JSValue *argv
+);
+
+void js_global_class_button_finalizer(
+    JSContext *ctx,
+    void *opaque
+);
+
+// NOTE: class-level gc_mark callback 已废弃，不再声明。
+// `Traced<T>` 基于引擎 JSGCRef（mark + 重定位均由引擎自动处理），
+// 因此注册表中的 gc_mark 槽位恒为 NULL。
+// 详见 rust_glue.rs.j2 中同名说明与 docs/knowledge/gotcha_mquickjs_gc_mark_signature.md。
+JSValue js_global_class_button_set_text(
+    JSContext *ctx,
+    JSValue *this_val,
+    int argc,
+    JSValue *argv
+);
+JSValue js_global_class_button_on_click(
+    JSContext *ctx,
+    JSValue *this_val,
+    int argc,
+    JSValue *argv
+);
+
+static const JSPropDef js_global_class_button_proto_funcs[] = {
+    JS_CFUNC_DEF("setText", 1, js_global_class_button_set_text),
+    JS_CFUNC_DEF("onClick", 1, js_global_class_button_on_click),
+    JS_PROP_END,
+};
+
+const JSClassDef js_global_class_button_class_def =
+    JS_CLASS_DEF(
+        "Button",
+        2,
+        js_global_class_button_constructor,
+        JS_CLASS_GLOBAL_BUTTON,
+        NULL,
+        js_global_class_button_proto_funcs,
+        NULL,
+        js_global_class_button_finalizer,
+        NULL  // gc_mark: 恒为 NULL（Traced<T> 由 JSGCRef 自动标记/重定位）
+    );
+
+void js_global_class_button_class(void) {
+    (void)&js_global_class_button_class_def;
+    (void)&js_global_class_button_proto_funcs;
+    (void)&js_global_class_button_constructor;
+    (void)&js_global_class_button_finalizer;
+}
 
 // Module initialization functions
 
@@ -87,6 +196,10 @@ JSValue js_global_singleton_console_get_enabled(JSContext *ctx, JSValue *this_va
     JS_CFUNC_DEF("require", 1, js_ridl_require), \
     JS_PROP_CLASS_DEF("__ridl_modules", &js_ridl_modules_ns_obj), \
 /* NOTE: module namespaces are exposed under __ridl_modules (module mode). */ \
+/* singletons are registered as global object properties (e.g. globalThis.console) */ \
+/* user classes are exported on global object (global mode) */ \
+    JS_PROP_CLASS_DEF("Label", &js_global_class_label_class_def), \
+    JS_PROP_CLASS_DEF("Button", &js_global_class_button_class_def), \
 /* singletons are registered as global object properties (e.g. globalThis.console) */ \
     JS_PROP_CLASS_DEF("console", &js_global_singleton_console_obj), \
 /* user classes are exported on global object (global mode) */ \

@@ -11,8 +11,13 @@ apps/system/mqjs/            ← 本仓（pengyz/mquickjs-openvela，main）
 ├── Kconfig / Make.defs / Makefile / CMakeLists.txt   # 双轨接线
 ├── js_main.c                # RS=y 入口（Rust 三件套 + 哨兵协议）
 ├── js_main_c.c              # RS=n 入口（M1-C C 桩形态）
+├── lvgldemo/                # B0 spike 宿主 app（mquickjs-ui + LVGL；
+│                            #   嵌套 app：Kconfig 由本目录 source，
+│                            #   CONFIGURED_APPS 由本目录 Make.defs 注册，
+│                            #   CMake 由本目录 CMakeLists add_subdirectory）
 ├── gen/                     # 集成期生成、入库的产物（见下表）
-└── rust/                    # 适配层 crate（RIDL 叶子，app-id=mqjs）
+└── rust/                    # 适配层 crate（RIDL 叶子，app-id=mqjs；
+                              #   路径依赖含 external/mquickjs-ui）
     ├── Cargo.toml           # 路径依赖指向 ../../../../external/mquickjs-rs-sdk
     ├── .cargo/config.toml   # MQJS_ENGINE_LINK=external + gen 产物 env 接线
     └── src/ build.rs
@@ -108,6 +113,29 @@ make olddefconfig && make -j$(nproc)
   后重跑哨兵（LLVM 插件不配时回退内嵌机器码）
 - 良性噪声：debug defconfig 下每条 NSH 命令打印
   `nxposix_spawn_exec: ERROR: exec failed: 2`（命令本身成功）
+
+## LVGL demo（lvgldemo，B0 spike）
+
+嵌套 app：Kconfig 由本目录 Kconfig `source`、CONFIGURED_APPS 由本目录
+Make.defs 注册、CMake 由本目录 CMakeLists `add_subdirectory`（kconfig/
+mkkconfig 只扫一层子目录，故不能依赖自动发现）。Rust 侧无独立 crate——
+demo 链接的符号（`mqjs_rs_ridl_*` / `mqjs_ui_*`）都在本 app 的 libmqjs.a
+（mquickjs-ui 已是 rust/ 叶子的 path dep），最终镜像一次性分组解析。
+
+```bash
+cd ~/workspace/openvela && ./build.sh sim:mqjs_lvgl --cmake   # 注意：不带 -b
+cd cmake_out/sim_mqjs_lvgl
+(echo "mqjslvgl"; sleep 22; echo "poweroff") | ./nuttx       # 需 X11（SIM_X11FB）
+# 哨兵：MQJS_LVGL: engine ready → eval ok → RISK-A/C send CLICKED ×N
+#        → RISK-D deleting button → LV_EVENT_DELETE release → DONE
+# defconfig 注意：CONFIG_FS_LINKS=y 必须保留——它提供 readlink（重定义为
+# NXreadlink），Rust std 的 readlink 才能解析，缺失则最终链接失败。
+```
+
+双轨的 cargo 依赖监听（Makefile `MQJS_RUST_DEPS` / CMakeLists
+`MQJS_RUST_DEPS` glob）**必须覆盖全部路径依赖源**（SDK crates +
+external/mquickjs-ui）：只盯 rust/ 会在改 mquickjs-ui 后静默链接旧归档
+（B0 实测踩坑）。
 
 ## CMake 轨（两仓重构后真实现）
 
